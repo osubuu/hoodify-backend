@@ -4,6 +4,7 @@ const { forwardTo } = require('prisma-binding');
 // Queries in here must match mutations defined in schema.graphql
 const Query = {
   items: forwardTo('db'),
+  item: forwardTo('db'),
 };
 
 module.exports = Query;
