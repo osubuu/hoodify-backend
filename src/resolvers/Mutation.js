@@ -11,7 +11,7 @@ const Mutations = {
     delete updates.id; // remove id from the updates because not updating ID
     const params = {
       data: updates,
-      where: args.id
+      where: { id: args.id }
     };
     const item = await ctx.db.mutation.updateItem(params, info);
     return item;
