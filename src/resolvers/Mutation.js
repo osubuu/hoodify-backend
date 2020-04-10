@@ -49,6 +49,27 @@ const Mutations = {
     });
     // return user to browser
     return user;
+  },
+  async signin(parent, args, ctx, info) {
+    // 1. Check if there is a user with that email
+    const user = await ctx.db.query.user({ where: { email: args.email } });
+    if (!user) {
+      throw new Error(`No such user found for email ${args.email}`);
+    }
+    // 2. Check if password is correct
+    const valid = await bcrpyt.compare(args.password, user.password);
+    if (!valid) {
+      throw new Error('Invalid password!');
+    }
+    // 3. Generate the JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
+    // 4. Set the cookie with the token
+    ctx.response.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year cookie
+    });
+    // 5. Return the user
+    return user;
   }
 };
 
