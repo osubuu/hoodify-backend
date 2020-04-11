@@ -9,8 +9,21 @@ const { transport, makeANiceEmail } = require('../mail');
 // info refers to what we want back in our response
 const Mutations = {
   async createItem(parent, args, ctx, info) {
-    // TODO: check if they are logged in
-    const params = { data: { ...args } };
+    // 1. Check if they are logged in
+    if (!ctx.request.userId) {
+      throw new Error('You must be logged in to do that!');
+    }
+    const params = {
+      data: {
+        // this is how we create relationship between item and user
+        user: {
+          connect: {
+            id: ctx.request.userId,
+          },
+        },
+        ...args,
+      }
+    };
     const item = await ctx.db.mutation.createItem(params, info);
     return item;
   },
