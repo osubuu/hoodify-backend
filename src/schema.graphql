@@ -27,6 +27,7 @@ type Query {
   me: User
   users: [User]!
   order(id: ID!): Order
+  orders(orderBy: OrderOrderByInput): [Order]!
 }
 
 # we are redefining the type for security purposes (i.e not to expose reset tokens to the front-end)
