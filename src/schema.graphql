@@ -26,6 +26,7 @@ type Query {
   itemsConnection(where: ItemWhereInput): ItemConnection!
   me: User
   users: [User]!
+  order(id: ID!): Order
 }
 
 # we are redefining the type for security purposes (i.e not to expose reset tokens to the front-end)
