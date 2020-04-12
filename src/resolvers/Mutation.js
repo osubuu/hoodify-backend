@@ -24,7 +24,7 @@ const Mutations = {
           },
         },
         ...args,
-      }
+      },
     };
     const item = await ctx.db.mutation.createItem(params, info);
     return item;
@@ -34,7 +34,7 @@ const Mutations = {
     delete updates.id; // remove id from the updates because not updating ID
     const params = {
       data: updates,
-      where: { id: args.id }
+      where: { id: args.id },
     };
     const item = await ctx.db.mutation.updateItem(params, info);
     return item;
@@ -50,19 +50,19 @@ const Mutations = {
       throw new Error("You don't have permission to delete this item");
     }
     // 3. Delete it
-    return ctx.db.mutation.deleteItem({ where }, info);;
+    return ctx.db.mutation.deleteItem({ where }, info);
   },
   async signup(parent, args, ctx, info) {
-    args.email = args.email.toLowerCase();
     // hash password
     const password = await bcrpyt.hash(args.password, 10);
     // create user in DB
     const user = await ctx.db.mutation.createUser({
       data: {
         ...args,
+        email: args.email.toLowerCase(),
         password,
-        permissions: { set: ['USER'] }
-      }
+        permissions: { set: ['USER'] },
+      },
     }, info);
     // create the JWT token for user
     const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
@@ -74,7 +74,7 @@ const Mutations = {
     // return user to browser
     return user;
   },
-  async signin(parent, args, ctx, info) {
+  async signin(parent, args, ctx) {
     // 1. Check if there is a user with that email
     const user = await ctx.db.query.user({ where: { email: args.email } });
     if (!user) {
@@ -95,11 +95,11 @@ const Mutations = {
     // 5. Return the user
     return user;
   },
-  signout(parent, args, ctx, info) {
+  signout(parent, args, ctx) {
     ctx.response.clearCookie('token');
-    return { message: 'Signed out successfully' }
+    return { message: 'Signed out successfully' };
   },
-  async requestReset(parent, args, ctx, info) {
+  async requestReset(parent, args, ctx) {
     // 1. Check if this is a real user
     const user = await ctx.db.query.user({ where: { email: args.email } });
     if (!user) {
@@ -109,23 +109,23 @@ const Mutations = {
     const randomBytesPromisified = promisify(randomBytes);
     const resetToken = (await randomBytesPromisified(20)).toString('hex');
     const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
-    const res = await ctx.db.mutation.updateUser({
+    await ctx.db.mutation.updateUser({
       where: { email: args.email },
-      data: { resetToken, resetTokenExpiry }
-    })
+      data: { resetToken, resetTokenExpiry },
+    });
     // 3. Email them that reset token
-    const mailRes = await transport.sendMail({
+    await transport.sendMail({
       from: 'khoi@khoi.com',
       to: user.email,
       subject: 'Your Password Reset Token',
       html: makeANiceEmail(
-        `Your Password Reset Token is here! \n\n <a href="${process.env.FRONTEND_URL}/reset?resetToken=${resetToken}">Click Here to Reset</a>`
-      )
-    })
+        `Your Password Reset Token is here! \n\n <a href="${process.env.FRONTEND_URL}/reset?resetToken=${resetToken}">Click Here to Reset</a>`,
+      ),
+    });
     // 4. Return the message
-    return { message: 'Success!' }
+    return { message: 'Success!' };
   },
-  async resetPassword(parent, args, ctx, info) {
+  async resetPassword(parent, args, ctx) {
     // 1. Check if passwords match
     if (args.password !== args.confirmPassword) {
       throw new Error('Passwords do not match');
@@ -136,13 +136,13 @@ const Mutations = {
       where: {
         resetToken: args.resetToken,
         resetTokenExpiry_gte: Date.now() - 3600000, // gte = greater than or equal to
-      }
+      },
     });
     if (!user) {
       throw new Error('This token is either invalid or expired');
     }
     // 4. Hash new password
-    const password = await bcrpyt.hash(args.password, 10)
+    const password = await bcrpyt.hash(args.password, 10);
     // 5. Save new password to user and remove old resetToken fields
     const updatedUser = await ctx.db.mutation.updateUser({
       where: { email: user.email },
@@ -189,7 +189,7 @@ const Mutations = {
   },
   async addToCart(parent, args, ctx, info) {
     // 1. Make sure they are signed in
-    const userId = ctx.request.userId;
+    const { userId } = ctx.request;
     if (!userId) {
       throw new Error('You must be signed in');
     }
@@ -236,18 +236,20 @@ const Mutations = {
       where: { id: args.id },
     }, info);
   },
-  async createOrder(parent, args, ctx, info) {
+  async createOrder(parent, args, ctx) {
     // 1. Query the current user and make sure they are signed in
     const { userId } = ctx.request;
-    if (!userId) throw new Error('You must be signed in to complete this order.')
+    if (!userId) throw new Error('You must be signed in to complete this order.');
     const user = await ctx.db.query.user({
       where: { id: userId },
-    }, '{ id name email cart { id quantity item { title price id description image largeImage } } }')
+    }, '{ id name email cart { id quantity item { title price id description image largeImage } } }');
     // 2. Recalculate the total for the price
-    const amount = user.cart.reduce((total, cartItem) => total + cartItem.item.price * cartItem.quantity, 0);
+    const amount = user.cart.reduce(
+      (total, cartItem) => total + cartItem.item.price * cartItem.quantity, 0,
+    );
     // 3. Create the Stripe charge (i.e turn token into $$$)
     const charge = await stripe.charges.create({
-      amount: amount,
+      amount,
       currency: 'USD',
       source: args.token,
     });
@@ -277,7 +279,7 @@ const Mutations = {
     });
     // 7. Return the Order to the client
     return order;
-  }
+  },
 };
 
 module.exports = Mutations;

@@ -12,7 +12,7 @@ const Query = {
       return null;
     }
     return ctx.db.query.user({
-      where: { id: ctx.request.userId }
+      where: { id: ctx.request.userId },
     }, info);
   },
   async users(parent, args, ctx, info) {
@@ -38,7 +38,7 @@ const Query = {
     const ownsOrder = order.user.id === ctx.request.userId;
     const hasPermissionToSeeOrder = ctx.request.user.permissions.includes('ADMIN');
     if (!ownsOrder || !hasPermissionToSeeOrder) {
-      throw new Error("You don't have permission")
+      throw new Error("You don't have permission");
     }
     // 4. Return the order
     return order;
@@ -53,7 +53,7 @@ const Query = {
         user: { id: userId },
       },
     }, info);
-  }
+  },
 };
 
 module.exports = Query;

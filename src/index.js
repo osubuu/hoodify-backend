@@ -25,13 +25,15 @@ server.express.use((request, response, next) => {
 // Create a middleware that populates the user on each request
 server.express.use(async (request, response, next) => {
   // if not logged in, skip
-  if (!request.userId) return next();
+  if (!request.userId) {
+    next();
+    return;
+  }
   const user = await db.query.user(
     { where: { id: request.userId } },
     '{ id, permissions, email, name }',
   );
   request.user = user;
-  next();
 });
 
 server.start({
@@ -41,4 +43,4 @@ server.start({
   },
 }, details => {
   console.log(`Server is now running on port http://localhost:${details.port}`);
-})
+});
