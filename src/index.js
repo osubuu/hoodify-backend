@@ -34,6 +34,7 @@ server.express.use(async (request, response, next) => {
     '{ id, permissions, email, name }',
   );
   request.user = user;
+  next();
 });
 
 server.start({
