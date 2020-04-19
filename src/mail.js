@@ -10,6 +10,7 @@ const transport = nodemailer.createTransport({
   },
 });
 
+// bare bones template
 const makeANiceEmail = text => `
   <div className="email" style="
     border: 1px solid black;
