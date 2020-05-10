@@ -30,14 +30,22 @@ const Mutations = {
     return item;
   },
   async updateItem(parent, args, ctx, info) {
+    // 1. Check if user owns item
+    const where = { id: args.id };
+    const item = await ctx.db.query.item({ where }, '{ id title user { id } }');
+    const ownsItem = item.user.id === ctx.request.userId;
+    if (!ownsItem) {
+      throw new Error("You don't have permission to update this item");
+    }
+    // 2. Perform update
     const updates = { ...args };
     delete updates.id; // remove id from the updates because not updating ID
     const params = {
       data: updates,
       where: { id: args.id },
     };
-    const item = await ctx.db.mutation.updateItem(params, info);
-    return item;
+    const updatedItem = await ctx.db.mutation.updateItem(params, info);
+    return updatedItem;
   },
   async deleteItem(parent, args, ctx, info) {
     const where = { id: args.id };
