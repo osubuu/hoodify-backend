@@ -5,7 +5,7 @@ const { promisify } = require('util');
 const stripe = require('../stripe');
 
 const { transport, makeANiceEmail } = require('../mail');
-const { hasPermission } = require('../utils');
+const { hasPermission, itemOwnershipError, signInError } = require('../utils');
 
 // Mutations in here must match mutations defined in schema.graphql
 // info refers to what we want back in our response
@@ -13,13 +13,10 @@ const Mutations = {
   async createItem(parent, args, ctx, info) {
     // 1. Check if they are logged in
     if (!ctx.request.userId) {
-      throw new Error('You must be logged in to do that!');
+      signInError();
     }
     // 2. Check if they have create permission
-    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMCREATE'].includes(permission));
-    if (!hasPermissions) {
-      throw new Error("You don't have permission to create this item");
-    }
+    hasPermission(ctx.request.user, ['ITEMCREATE']);
     const params = {
       data: {
         // this is how we create relationship between item and user
@@ -39,12 +36,12 @@ const Mutations = {
     const where = { id: args.id };
     const item = await ctx.db.query.item({ where }, '{ id title user { id } }');
     const ownsItem = item.user.id === ctx.request.userId;
-    // 2. Check if they have update permission
-    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMUPDATE'].includes(permission));
-    if (!ownsItem || !hasPermissions) {
-      throw new Error("You don't have permission to update this item");
+    if (!ownsItem) {
+      itemOwnershipError();
     }
-    // 2. Perform update
+    // 2. Check if they have update permission
+    hasPermission(ctx.request.user, ['ITEMUPDATE']);
+    // 3. Perform update
     const updates = { ...args };
     delete updates.id; // remove id from the updates because not updating ID
     const params = {
@@ -60,10 +57,10 @@ const Mutations = {
     const item = await ctx.db.query.item({ where }, '{ id title user { id } }');
     // 2. Check if they own that item or have the permissions
     const ownsItem = item.user.id === ctx.request.userId;
-    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMDELETE'].includes(permission));
-    if (!ownsItem || !hasPermissions) {
-      throw new Error("You don't have permission to delete this item");
+    if (!ownsItem) {
+      itemOwnershipError();
     }
+    hasPermission(ctx.request.user, ['ITEMDELETE']);
     // 3. Delete it
     return ctx.db.mutation.deleteItem({ where }, info);
   },
@@ -156,7 +153,7 @@ const Mutations = {
     if (!user) {
       throw new Error('This token is either invalid or expired');
     }
-    // 4. Check if password is correct
+    // 4. Check if current password is correct
     const valid = await bcrpyt.compare(args.oldPassword, user.password);
     if (!valid) {
       throw new Error('Invalid current password');
@@ -185,7 +182,7 @@ const Mutations = {
   async updatePermissions(parent, args, ctx, info) {
     // 1. Check if they are logged in
     if (!ctx.request.userId) {
-      throw new Error('You must be logged in!');
+      signInError();
     }
     // 2. Query the current user
     const currentUser = await ctx.db.query.user({
@@ -211,7 +208,7 @@ const Mutations = {
     // 1. Make sure they are signed in
     const { userId } = ctx.request;
     if (!userId) {
-      throw new Error('You must be signed in');
+      signInError();
     }
     // 2. Query the user's current cart
     const [existingCartItem] = await ctx.db.query.cartItems({
@@ -249,7 +246,7 @@ const Mutations = {
     }
     // 2. Make sure they own cart item
     if (cartItem.user.id !== ctx.request.userId) {
-      throw new Error('User does not own this item');
+      itemOwnershipError();
     }
     // 3. Delete that cart item
     return ctx.db.mutation.deleteCartItem({
@@ -259,7 +256,9 @@ const Mutations = {
   async createOrder(parent, args, ctx) {
     // 1. Query the current user and make sure they are signed in
     const { userId } = ctx.request;
-    if (!userId) throw new Error('You must be signed in to complete this order.');
+    if (!userId) {
+      signInError();
+    }
     const user = await ctx.db.query.user({
       where: { id: userId },
     }, '{ id name email cart { id quantity item { title price id description image largeImage } } }');
