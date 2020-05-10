@@ -76,7 +76,7 @@ const Mutations = {
         ...args,
         email: args.email.toLowerCase(),
         password,
-        permissions: { set: ['USER'] },
+        permissions: { set: ['USER', 'ITEMCREATE', 'ITEMUPDATE', 'ITEMDELETE'] },
       },
     }, info);
     // create the JWT token for user
