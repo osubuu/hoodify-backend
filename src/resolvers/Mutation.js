@@ -156,9 +156,14 @@ const Mutations = {
     if (!user) {
       throw new Error('This token is either invalid or expired');
     }
-    // 4. Hash new password
+    // 4. Check if password is correct
+    const valid = await bcrpyt.compare(args.oldPassword, user.password);
+    if (!valid) {
+      throw new Error('Invalid current password');
+    }
+    // 5. Hash new password
     const password = await bcrpyt.hash(args.password, 10);
-    // 5. Save new password to user and remove old resetToken fields
+    // 6. Save new password to user and remove old resetToken fields
     const updatedUser = await ctx.db.mutation.updateUser({
       where: { email: user.email },
       data: {
@@ -167,14 +172,14 @@ const Mutations = {
         resetTokenExpiry: null,
       },
     });
-    // 6. Generate JWT
+    // 7. Generate JWT
     const token = jwt.sign({ userId: updatedUser.id }, process.env.APP_SECRET);
-    // 7. Set the JWT cookie
+    // 8. Set the JWT cookie
     ctx.response.cookie('token', token, {
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year cookie
     });
-    // 8. Return the new user
+    // 9. Return the new user
     return updatedUser;
   },
   async updatePermissions(parent, args, ctx, info) {
