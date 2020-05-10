@@ -130,7 +130,7 @@ const Mutations = {
     });
     // 3. Email them that reset token
     await transport.sendMail({
-      from: 'khoi@khoi.com',
+      from: 'help@hoodify.com',
       to: user.email,
       subject: 'Your Password Reset Token',
       html: makeANiceEmail(
