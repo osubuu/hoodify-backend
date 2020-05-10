@@ -15,6 +15,11 @@ const Mutations = {
     if (!ctx.request.userId) {
       throw new Error('You must be logged in to do that!');
     }
+    // 2. Check if they have create permission
+    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMCREATE'].includes(permission));
+    if (!hasPermissions) {
+      throw new Error("You don't have permission to create this item");
+    }
     const params = {
       data: {
         // this is how we create relationship between item and user
@@ -34,7 +39,9 @@ const Mutations = {
     const where = { id: args.id };
     const item = await ctx.db.query.item({ where }, '{ id title user { id } }');
     const ownsItem = item.user.id === ctx.request.userId;
-    if (!ownsItem) {
+    // 2. Check if they have update permission
+    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMUPDATE'].includes(permission));
+    if (!ownsItem || !hasPermissions) {
       throw new Error("You don't have permission to update this item");
     }
     // 2. Perform update
@@ -53,7 +60,7 @@ const Mutations = {
     const item = await ctx.db.query.item({ where }, '{ id title user { id } }');
     // 2. Check if they own that item or have the permissions
     const ownsItem = item.user.id === ctx.request.userId;
-    const hasPermissions = ctx.request.user.permissions.some(permission => ['ADMIN', 'ITEMDELETE'].includes(permission));
+    const hasPermissions = ctx.request.user.permissions.some(permission => ['ITEMDELETE'].includes(permission));
     if (!ownsItem || !hasPermissions) {
       throw new Error("You don't have permission to delete this item");
     }
