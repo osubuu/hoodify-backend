@@ -17,6 +17,9 @@ A simple light-hearted ecommerce web application where users can buy and sell ho
 * User accounts, authentication (JWT), permissions
 * Prisma and Yoga servers deployed on Heroku
 
+## Link to front
+[View Hoodify's frontend repository](https://github.com/osubuu/hoodify-frontend)
+
 ## NOTE
 Certain functionalities are still linked to development services:
 * Emails are still set to be sent to a fake SMTP testing server.
